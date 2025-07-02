@@ -90,7 +90,7 @@ func newMockClient(responses map[string]mockResponse, expectedRequests []expecte
 	}
 
 	httpClient := &http.Client{Transport: transport}
-	client, err := NewClient("test-api-key", "localhost", "9117", httpClient)
+	client, err := NewClient("http://localhost:9117", "test-api-key", httpClient)
 	return client, transport, err
 }
 
@@ -104,6 +104,6 @@ func newMockClientWithExternalURL(responses map[string]mockResponse, expectedReq
 	}
 
 	httpClient := &http.Client{Transport: transport}
-	client, err := NewClient("test-api-key", "localhost", "9117", httpClient)
+	client, err := NewClient("http://localhost:9117", "test-api-key", httpClient)
 	return client, transport, err
 }

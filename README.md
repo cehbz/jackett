@@ -31,15 +31,14 @@ import (
 ### Initializing the Client
 
 ```go
-client, err := jackett.NewClient("your-api-key", "localhost", "9117")
+client, err := jackett.NewClient("http://localhost:9117", "your-api-key")
 if err != nil {
     log.Fatalf("Failed to create client: %v", err)
 }
 ```
 
+- `baseURL`: The full URL where Jackett is running (e.g., "http://127.0.0.1:9117")
 - `apiKey`: Your Jackett API key
-- `addr`: The address where Jackett is running (e.g., `"127.0.0.1"`)
-- `port`: The port number of the Jackett API (e.g., `"9117"`)
 
 ### Searching for Torrents
 

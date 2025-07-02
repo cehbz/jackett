@@ -73,18 +73,17 @@ type Cap struct {
 }
 
 // NewClient initializes a new Jackett client.
+// baseURL should be the full URL to the Jackett instance, e.g. "http://localhost:9117"
 // If httpClient is nil, http.DefaultClient is used.
-func NewClient(apiKey, addr, port string, httpClient ...*http.Client) (*Client, error) {
-	// Use the provided http.Client if given, otherwise use http.DefaultClient
+func NewClient(baseURL, apiKey string, httpClient ...*http.Client) (*Client, error) {
 	client := http.DefaultClient
 	if len(httpClient) > 0 && httpClient[0] != nil {
 		client = httpClient[0]
 	}
 
-	// Create and return the Client instance
 	jClient := &Client{
 		client:  client,
-		baseURL: fmt.Sprintf("http://%s:%s", addr, port),
+		baseURL: baseURL,
 		apiKey:  apiKey,
 	}
 

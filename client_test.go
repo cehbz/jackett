@@ -9,7 +9,7 @@ import (
 
 func TestNewClient(t *testing.T) {
 	// Test with default HTTP client
-	client, err := NewClient("test-api-key", "localhost", "9117")
+	client, err := NewClient("http://localhost:9117", "test-api-key")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -24,7 +24,7 @@ func TestNewClient(t *testing.T) {
 
 	// Test with custom HTTP client
 	customHTTP := &http.Client{}
-	client2, err := NewClient("test-api-key", "localhost", "9117", customHTTP)
+	client2, err := NewClient("http://localhost:9117", "test-api-key", customHTTP)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

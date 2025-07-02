@@ -9,8 +9,8 @@ import (
 
 func main() {
 	// Initialize the client
-	// Replace with your actual Jackett API key, address, and port
-	client, err := jackett.NewClient("your-api-key", "localhost", "9117")
+	// Replace with your actual Jackett base URL and API key
+	client, err := jackett.NewClient("http://localhost:9117", "your-api-key")
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
@@ -58,16 +58,16 @@ func main() {
 			log.Printf("Warning: Search failed: %v", err)
 		} else {
 			fmt.Printf("✓ Found %d results\n", len(results.Results))
-			
+
 			// Show first few results
 			for i, result := range results.Results {
 				if i >= 3 { // Limit to first 3 results
 					fmt.Printf("... and %d more results\n", len(results.Results)-3)
 					break
 				}
-				fmt.Printf("  %d. %s (%d seeders, %s)\n", 
-					i+1, 
-					result.Title, 
+				fmt.Printf("  %d. %s (%d seeders, %s)\n",
+					i+1,
+					result.Title,
 					result.Seeders,
 					formatSize(result.Size))
 			}
@@ -91,4 +91,4 @@ func formatSize(bytes int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
-} 
+}
