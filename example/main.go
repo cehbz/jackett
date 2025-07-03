@@ -70,6 +70,25 @@ func main() {
 					result.Title,
 					result.Seeders,
 					formatSize(result.Size))
+				// Show additional fields if present
+				if result.Tracker != "" {
+					fmt.Printf("      Tracker: %s\n", result.Tracker)
+				}
+				if result.CategoryDesc != "" {
+					fmt.Printf("      Category: %s\n", result.CategoryDesc)
+				}
+				if result.PublishDate != "" {
+					fmt.Printf("      Published: %s\n", result.PublishDate)
+				}
+				if result.InfoHash != "" {
+					fmt.Printf("      InfoHash: %s\n", result.InfoHash)
+				}
+				if result.Description != nil && *result.Description != "" {
+					fmt.Printf("      Description: %.60s\n", *result.Description)
+				}
+				if result.Poster != nil && *result.Poster != "" {
+					fmt.Printf("      Poster: %s\n", *result.Poster)
+				}
 			}
 		}
 	} else {
