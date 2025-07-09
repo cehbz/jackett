@@ -8,7 +8,6 @@ A Go client library for interacting with the [Jackett](https://github.com/Jacket
 - **Indexer Management**: Retrieve information about configured indexers
 - **Torrent Download**: Download torrent files from search results
 - **Server Configuration**: Access Jackett server configuration
-- **Connection Testing**: Verify API connectivity
 
 ## Installation
 
@@ -96,16 +95,6 @@ if err != nil {
 }
 ```
 
-### Testing Connection
-
-```go
-err := client.TestConnection()
-if err != nil {
-    log.Fatalf("Connection test failed: %v", err)
-}
-fmt.Println("Successfully connected to Jackett")
-```
-
 ### Getting Server Configuration
 
 ```go
@@ -117,6 +106,10 @@ if err != nil {
 fmt.Printf("Jackett version: %v\n", config["app_version"])
 fmt.Printf("API port: %v\n", config["port"])
 ```
+
+## Connection Handling
+
+The client does not provide a separate connection test method. Connection and authentication are implicitly tested by attempting to fetch indexers, perform a search, or retrieve server configuration. If there is a problem, the relevant method will return an error.
 
 ## Search Result Categories
 

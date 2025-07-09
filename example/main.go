@@ -15,13 +15,7 @@ func main() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	// Test the connection
-	fmt.Println("Testing connection to Jackett...")
-	err = client.TestConnection()
-	if err != nil {
-		log.Fatalf("Connection test failed: %v", err)
-	}
-	fmt.Println("✓ Successfully connected to Jackett")
+	fmt.Println("✓ Successfully created Jackett client")
 
 	// Get server configuration
 	fmt.Println("\nGetting server configuration...")
@@ -33,7 +27,7 @@ func main() {
 		fmt.Printf("✓ API port: %v\n", config["port"])
 	}
 
-	// Get configured indexers
+	// Get configured indexers (this will test the connection)
 	fmt.Println("\nGetting configured indexers...")
 	indexers, err := client.GetIndexers()
 	if err != nil {

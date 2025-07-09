@@ -2,19 +2,18 @@ package jackett
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"sync"
 )
 
-// Client is used to interact with the Jackett API
+// Client is a Jackett API client. It is immutable and safe for concurrent use.
 type Client struct {
 	client  *http.Client
 	baseURL string
 	apiKey  string
-	mu      sync.RWMutex
 }
 
 // SearchResult represents a torrent search result from Jackett
@@ -79,23 +78,114 @@ type SearchResponse struct {
 
 // Indexer represents a configured indexer in Jackett
 type Indexer struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Type        string `json:"type"`
-	Configured  bool   `json:"configured"`
-	SiteLink    string `json:"site_link"`
-	Language    string `json:"language"`
-	LastError   string `json:"last_error"`
-	Potatoe     bool   `json:"potatoe"`
-	Caps        []Cap  `json:"caps"`
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	Type        string     `json:"type"`
+	Configured  bool       `json:"configured"`
+	SiteLink    string     `json:"site_link"`
+	Language    string     `json:"language"`
+	Caps        *Caps      `json:"caps,omitempty"`
+	Categories  []Category `json:"categories,omitempty"`
 }
 
-// Cap represents indexer capabilities
-type Cap struct {
-	ID      string `json:"ID"`
-	Name    string `json:"Name"`
-	SubCats []Cap  `json:"SubCats,omitempty"`
+type Caps struct {
+	Server    string    `json:"server"`
+	Limits    Limits    `json:"limits"`
+	Searching Searching `json:"searching"`
+}
+
+type Limits struct {
+	Default string `json:"default"`
+	Max     string `json:"max"`
+}
+
+type Searching struct {
+	Search      *SearchType `json:"search,omitempty"`
+	TVSearch    *SearchType `json:"tv_search,omitempty"`
+	MovieSearch *SearchType `json:"movie_search,omitempty"`
+	MusicSearch *SearchType `json:"music_search,omitempty"`
+	AudioSearch *SearchType `json:"audio_search,omitempty"`
+	BookSearch  *SearchType `json:"book_search,omitempty"`
+}
+
+type SearchType struct {
+	Available       string `json:"available"`
+	SupportedParams string `json:"supported_params"`
+}
+
+type Category struct {
+	ID      int      `json:"id"`
+	Name    string   `json:"name"`
+	Subcats []Subcat `json:"subcats,omitempty"`
+}
+
+type Subcat struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+// TorznabIndexersResponse represents the XML response from the torznab indexers endpoint
+// Updated to match the real Jackett XML structure, including all fields
+type TorznabIndexersResponse struct {
+	XMLName  xml.Name         `xml:"indexers"`
+	Indexers []TorznabIndexer `xml:"indexer"`
+}
+
+type TorznabIndexer struct {
+	ID          string      `xml:"id,attr"`
+	Configured  bool        `xml:"configured,attr"`
+	Title       string      `xml:"title"`
+	Description string      `xml:"description"`
+	Link        string      `xml:"link"`
+	Language    string      `xml:"language"`
+	Type        string      `xml:"type"`
+	Caps        TorznabCaps `xml:"caps"`
+}
+
+type TorznabCaps struct {
+	Server     TorznabServer     `xml:"server"`
+	Limits     TorznabLimits     `xml:"limits"`
+	Searching  TorznabSearching  `xml:"searching"`
+	Categories TorznabCategories `xml:"categories"`
+}
+
+type TorznabServer struct {
+	Title string `xml:"title,attr"`
+}
+
+type TorznabLimits struct {
+	Default string `xml:"default,attr"`
+	Max     string `xml:"max,attr"`
+}
+
+type TorznabSearching struct {
+	Search      *TorznabSearchType `xml:"search"`
+	TVSearch    *TorznabSearchType `xml:"tv-search"`
+	MovieSearch *TorznabSearchType `xml:"movie-search"`
+	MusicSearch *TorznabSearchType `xml:"music-search"`
+	AudioSearch *TorznabSearchType `xml:"audio-search"`
+	BookSearch  *TorznabSearchType `xml:"book-search"`
+}
+
+type TorznabSearchType struct {
+	Available       string `xml:"available,attr"`
+	SupportedParams string `xml:"supportedParams,attr"`
+}
+
+type TorznabCategories struct {
+	Categories []TorznabCategory `xml:"category"`
+}
+
+type TorznabCategory struct {
+	ID      int             `xml:"id,attr"`
+	Name    string          `xml:"name,attr"`
+	Subcats []TorznabSubcat `xml:"subcat"`
+}
+
+type TorznabSubcat struct {
+	ID   int    `xml:"id,attr"`
+	Name string `xml:"name,attr"`
 }
 
 // NewClient initializes a new Jackett client.
@@ -159,19 +249,71 @@ func (c *Client) SearchWithIndexer(indexerID, query string) (*SearchResponse, er
 func (c *Client) GetIndexers() ([]Indexer, error) {
 	params := url.Values{}
 	params.Set("apikey", c.apiKey)
+	params.Set("t", "indexers")
 	params.Set("configured", "true")
 
-	respData, err := c.doGet("/api/v2.0/indexers", params)
+	respData, err := c.doGet("/api/v2.0/indexers/all/results/torznab", params)
 	if err != nil {
 		return nil, fmt.Errorf("get indexers error: %v", err)
 	}
 
-	var indexers []Indexer
-	if err := json.Unmarshal(respData, &indexers); err != nil {
+	var torznabResponse TorznabIndexersResponse
+	if err := xml.Unmarshal(respData, &torznabResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode indexers response: %v", err)
 	}
 
+	// Convert TorznabIndexer to Indexer
+	indexers := make([]Indexer, len(torznabResponse.Indexers))
+	for i, tIdx := range torznabResponse.Indexers {
+		// Convert caps
+		caps := &Caps{
+			Server: tIdx.Caps.Server.Title,
+			Limits: Limits{
+				Default: tIdx.Caps.Limits.Default,
+				Max:     tIdx.Caps.Limits.Max,
+			},
+			Searching: Searching{
+				Search:      convertSearchType(tIdx.Caps.Searching.Search),
+				TVSearch:    convertSearchType(tIdx.Caps.Searching.TVSearch),
+				MovieSearch: convertSearchType(tIdx.Caps.Searching.MovieSearch),
+				MusicSearch: convertSearchType(tIdx.Caps.Searching.MusicSearch),
+				AudioSearch: convertSearchType(tIdx.Caps.Searching.AudioSearch),
+				BookSearch:  convertSearchType(tIdx.Caps.Searching.BookSearch),
+			},
+		}
+		// Convert categories
+		categories := make([]Category, len(tIdx.Caps.Categories.Categories))
+		for j, cat := range tIdx.Caps.Categories.Categories {
+			subcats := make([]Subcat, len(cat.Subcats))
+			for k, sub := range cat.Subcats {
+				subcats[k] = Subcat(sub)
+			}
+			categories[j] = Category{ID: cat.ID, Name: cat.Name, Subcats: subcats}
+		}
+		indexers[i] = Indexer{
+			ID:          tIdx.ID,
+			Name:        tIdx.Title,
+			Description: tIdx.Description,
+			Type:        tIdx.Type,
+			Configured:  tIdx.Configured,
+			SiteLink:    tIdx.Link,
+			Language:    tIdx.Language,
+			Caps:        caps,
+			Categories:  categories,
+		}
+	}
+
 	return indexers, nil
+}
+
+func convertSearchType(t *TorznabSearchType) *SearchType {
+	if t == nil {
+		return nil
+	}
+	return &SearchType{
+		Available:       t.Available,
+		SupportedParams: t.SupportedParams,
+	}
 }
 
 // DownloadTorrent downloads a torrent file from the given link
@@ -248,19 +390,6 @@ func (c *Client) doGet(endpoint string, query url.Values) ([]byte, error) {
 	}
 
 	return io.ReadAll(resp.Body)
-}
-
-// TestConnection verifies the connection to Jackett
-func (c *Client) TestConnection() error {
-	params := url.Values{}
-	params.Set("apikey", c.apiKey)
-
-	_, err := c.doGet("/api/v2.0/indexers", params)
-	if err != nil {
-		return fmt.Errorf("connection test failed: %v", err)
-	}
-
-	return nil
 }
 
 // GetServerConfig retrieves the Jackett server configuration

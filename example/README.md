@@ -27,18 +27,16 @@ go build -o jackett-example .
 
 The example demonstrates:
 
-1. **Connection Testing**: Verifies connectivity to your Jackett instance
-2. **Server Configuration**: Retrieves and displays Jackett server information
-3. **Indexer Management**: Lists all configured indexers
-4. **Search Functionality**: Performs a sample search for "The Matrix 1999"
+1. **Server Configuration**: Retrieves and displays Jackett server information
+2. **Indexer Management**: Lists all configured indexers
+3. **Search Functionality**: Performs a sample search for "The Matrix 1999"
 
 ## Expected Output
 
 If everything is configured correctly, you should see output similar to:
 
 ```
-Testing connection to Jackett...
-✓ Successfully connected to Jackett
+✓ Successfully created Jackett client
 
 Getting server configuration...
 ✓ Jackett version: 0.20.1234.0
